@@ -3,17 +3,7 @@
 }
 
 .rbc-toolbar {
-  @apply mb-4 flex flex-wrap gap-2 items-center justify-between px-4;
-}
-
-.rbc-toolbar button {
-  @apply px-4 py-2 text-sm font-medium rounded-full
-         text-gray-600 hover:bg-gray-100 focus:outline-none 
-         transition-colors duration-200;
-}
-
-.rbc-toolbar button.rbc-active {
-  @apply bg-purple-100 text-purple-600;
+  @apply hidden;
 }
 
 .rbc-toolbar-label {
@@ -33,7 +23,10 @@
 }
 
 .rbc-event.calendar-event {
-  @apply text-white px-3 py-1 rounded-lg text-sm;
+  @apply text-white px-2 py-1 rounded-lg text-sm;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 2rem;
 }
 
 .rbc-event:hover {
@@ -73,20 +66,12 @@
 }
 
 @media (max-width: 768px) {
-  .rbc-toolbar {
-    @apply px-2 flex-col items-stretch;
-  }
-
   .rbc-toolbar-label {
-    @apply text-center my-2 text-lg;
-  }
-
-  .rbc-btn-group {
-    @apply flex justify-center gap-2;
+    @apply text-center text-base font-bold;
   }
 
   .rbc-header {
-    @apply text-xs py-1;
+    @apply text-xs py-1 px-1;
   }
 
   .rbc-event {
@@ -94,7 +79,32 @@
   }
 
   .rbc-event.calendar-event {
-    @apply px-2;
+    @apply px-1.5 py-0.5 text-xs leading-tight;
+    min-height: 1.5rem;
+  }
+
+  .rbc-time-slot {
+    @apply text-xs;
+  }
+
+  .rbc-time-gutter {
+    @apply pr-1;
+  }
+
+  .rbc-time-content {
+    @apply text-xs;
+  }
+
+  .rbc-time-header-content {
+    @apply pr-1;
+  }
+
+  .rbc-events-container {
+    @apply mr-1;
+  }
+
+  .rbc-time-content > * + * > * {
+    @apply border-l-0;
   }
 }
 

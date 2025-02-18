@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Calendar, dateFnsLocalizer, Views, View } from 'react-big-calendar';
-import { format } from 'date-fns';
-import { parse } from 'date-fns';
-import { startOfWeek } from 'date-fns';
-import { getDay } from 'date-fns';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
 import zhTW from 'date-fns/locale/zh-TW';
 import ICAL from 'ical.js';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -65,20 +62,22 @@ const getCalendarConfigs = (): CalendarConfig[] => {
 };
 
 const customViews = {
+  agenda: true,
+  day: true,
   month: true,
   week: true,
-  day: true,
   work_week: true,
 };
 
 const customMessages = {
-  today: '今天',
+  today: 'Today',
   previous: '上一個',
   next: '下一個',
-  month: '月',
-  week: '週',
-  day: '日',
-  work_week: '三日',
+  month: 'Month',
+  week: 'Week',
+  day: 'Day',
+  work_week: '3 days',
+  agenda: 'Agenda',
   date: '日期',
   time: '時間',
   event: '事件',
@@ -90,6 +89,10 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState<View>(Views.WEEK);
   const [calendars, setCalendars] = useState<CalendarConfig[]>(getCalendarConfigs());
+  const [showMenu, setShowMenu] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [date, setDate] = useState(new Date());
 
   const fetchCalendarEvents = async (calendar: CalendarConfig) => {
     try {
@@ -145,7 +148,7 @@ function App() {
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
-        setView(Views.DAY);
+        setView(Views.WORK_WEEK);
       } else {
         setView(Views.WEEK);
       }
@@ -172,6 +175,90 @@ function App() {
     );
   };
 
+  const isMobile = window.innerWidth < 768;
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe) {
+      handleNavigate('NEXT');
+    }
+    if (isRightSwipe) {
+      handleNavigate('PREV');
+    }
+
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
+  const handleNavigate = (action: 'PREV' | 'NEXT' | 'TODAY') => {
+    let newDate = new Date(date);
+    
+    switch (action) {
+      case 'PREV':
+        switch (view) {
+          case Views.MONTH:
+            newDate.setMonth(date.getMonth() - 1);
+            break;
+          case Views.WEEK:
+            newDate.setDate(date.getDate() - 7);
+            break;
+          case Views.WORK_WEEK:
+            newDate.setDate(date.getDate() - 3);
+            break;
+        }
+        break;
+      case 'NEXT':
+        switch (view) {
+          case Views.MONTH:
+            newDate.setMonth(date.getMonth() + 1);
+            break;
+          case Views.WEEK:
+            newDate.setDate(date.getDate() + 7);
+            break;
+          case Views.WORK_WEEK:
+            newDate.setDate(date.getDate() + 3);
+            break;
+        }
+        break;
+      case 'TODAY':
+        newDate = new Date();
+        break;
+    }
+    
+    setDate(newDate);
+  };
+
+  const getNavigationLabel = () => {
+    switch (view) {
+      case Views.MONTH:
+        return { prev: '上個月', next: '下個月' };
+      case Views.WEEK:
+        return { prev: '上週', next: '下週' };
+      case Views.WORK_WEEK:
+        return { prev: '前三天', next: '後三天' };
+      default:
+        return { prev: '上一個', next: '下一個' };
+    }
+  };
+
+  const formatDate = (date: Date) => {
+    const month = format(date, 'M', { locale: zhTW });
+    const year = format(date, 'yyyy', { locale: zhTW });
+    return `${month}月 ${year}`;
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white">
@@ -184,56 +271,143 @@ function App() {
     <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto">
         <div className="bg-white">
-          <div className="px-4 pt-6 pb-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-4xl font-bold text-black mb-1">RegChien's Calendar</h1>
-                <p className="text-base text-purple-600">i@regchien.info</p>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="flex gap-2">
-                  {calendars.map(calendar => (
-                    <div key={calendar.id} className="flex items-center gap-1">
-                      <button
-                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 ${
-                          calendar.enabled
-                            ? `bg-opacity-100 text-white`
-                            : `bg-opacity-20 text-gray-600`
-                        }`}
-                        style={{
-                          backgroundColor: calendar.enabled
-                            ? calendar.color
-                            : `${calendar.color}33`,
-                        }}
-                        onClick={() => toggleCalendar(calendar.id)}
-                      >
-                        {calendar.title}
-                      </button>
-                      <button
-                        className={`p-1 rounded-full transition-colors duration-200 ${
-                          calendar.enabled
-                            ? calendar.showDetails
-                              ? 'text-gray-900'
-                              : 'text-gray-400'
-                            : 'text-gray-300'
-                        }`}
-                        onClick={() => toggleDetails(calendar.id)}
-                        disabled={!calendar.enabled}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                          <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
+          <div className="px-4 pt-4 pb-2">
+            <div className="flex flex-col">
+              <div className="mb-2">
+                <p className="text-sm text-purple-600">i@regchien.info</p>
+                <div className="text-2xl md:text-3xl mt-1">
+                  <span className="font-bold">{format(date, 'MMMM')} </span>
+                  <span>{format(date, 'yyyy')}</span>
                 </div>
-                <button className="text-purple-600 text-lg">Today</button>
-                <button className="text-purple-600 text-2xl">⋯</button>
               </div>
             </div>
           </div>
-          <div className="h-[calc(100vh-8rem)]">
+          <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200">
+            <button
+              className="md:hidden p-1.5 rounded-lg hover:bg-gray-100"
+              onClick={() => setShowMenu(true)}
+            >
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
+              </svg>
+            </button>
+            <div className="flex items-center space-x-4">
+              <div className="hidden md:flex items-center border rounded-lg overflow-hidden">
+                <button
+                  className={`px-4 py-1.5 text-sm font-medium ${
+                    view === Views.WEEK ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                  onClick={() => setView(Views.WEEK)}
+                >
+                  週
+                </button>
+                <button
+                  className={`px-4 py-1.5 text-sm font-medium border-l ${
+                    view === Views.MONTH ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                  onClick={() => setView(Views.MONTH)}
+                >
+                  月
+                </button>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  className="p-1.5 rounded-lg hover:bg-gray-100"
+                  onClick={() => handleNavigate('PREV')}
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg"
+                  onClick={() => handleNavigate('TODAY')}
+                >
+                  Today
+                </button>
+                <button
+                  className="p-1.5 rounded-lg hover:bg-gray-100"
+                  onClick={() => handleNavigate('NEXT')}
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          {showMenu && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-50" onClick={() => setShowMenu(false)}>
+              <div className="absolute left-0 top-0 bottom-0 w-64 bg-white shadow-xl">
+                <div className="p-4">
+                  <h2 className="text-lg font-medium text-gray-900 mb-4">View</h2>
+                  <div className="space-y-2">
+                    <button
+                      className={`w-full text-left px-4 py-2 text-base rounded-lg ${
+                        view === Views.AGENDA ? 'bg-purple-50 text-purple-600' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                      onClick={() => {
+                        setView(Views.AGENDA);
+                        setShowMenu(false);
+                      }}
+                    >
+                      Agenda
+                    </button>
+                    <button
+                      className={`w-full text-left px-4 py-2 text-base rounded-lg ${
+                        view === Views.DAY ? 'bg-purple-50 text-purple-600' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                      onClick={() => {
+                        setView(Views.DAY);
+                        setShowMenu(false);
+                      }}
+                    >
+                      Day
+                    </button>
+                    <button
+                      className={`w-full text-left px-4 py-2 text-base rounded-lg ${
+                        view === Views.WORK_WEEK ? 'bg-purple-50 text-purple-600' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                      onClick={() => {
+                        setView(Views.WORK_WEEK);
+                        setShowMenu(false);
+                      }}
+                    >
+                      3 days
+                    </button>
+                    <button
+                      className={`w-full text-left px-4 py-2 text-base rounded-lg ${
+                        view === Views.WEEK ? 'bg-purple-50 text-purple-600' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                      onClick={() => {
+                        setView(Views.WEEK);
+                        setShowMenu(false);
+                      }}
+                    >
+                      Week
+                    </button>
+                    <button
+                      className={`w-full text-left px-4 py-2 text-base rounded-lg ${
+                        view === Views.MONTH ? 'bg-purple-50 text-purple-600' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                      onClick={() => {
+                        setView(Views.MONTH);
+                        setShowMenu(false);
+                      }}
+                    >
+                      Month
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <div 
+            className="h-[calc(100vh-7rem)] md:h-[calc(100vh-8rem)]"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
             <Calendar
               localizer={localizer}
               events={events}
@@ -242,9 +416,20 @@ function App() {
               views={customViews}
               defaultView={view}
               view={view}
+              date={date}
               onView={(newView: View) => setView(newView)}
+              onNavigate={(newDate: Date) => setDate(newDate)}
               culture="zh-TW"
               messages={customMessages}
+              formats={{
+                dayHeaderFormat: (date: Date) => format(date, 'M月 d日', { locale: zhTW }),
+                dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) => {
+                  if (view === Views.WORK_WEEK) {
+                    return format(start, 'M月 d日', { locale: zhTW });
+                  }
+                  return `${format(start, 'M月 d日', { locale: zhTW })} - ${format(end, 'M月 d日', { locale: zhTW })}`;
+                },
+              }}
               eventPropGetter={(event) => {
                 const calendar = calendars.find(cal => cal.id === event.calendarId);
                 return {
@@ -258,24 +443,24 @@ function App() {
               dayPropGetter={(date) => ({
                 className: 'calendar-day'
               })}
-              min={new Date(2024, 1, 1, 5, 0)} // 從早上 5 點開始
-              max={new Date(2024, 1, 1, 20, 0)} // 到晚上 8 點結束
-              length={3} // 設定工作週視圖的長度為 3 天
+              min={new Date(2024, 1, 1, 5, 0)}
+              max={new Date(2024, 1, 1, 20, 0)}
+              length={3}
               components={{
                 event: (props) => {
                   const { event } = props;
                   const calendar = calendars.find(cal => cal.id === event.calendarId);
                   if (!calendar?.showDetails) {
-                    return <div>{event.title}</div>;
+                    return <div className="whitespace-pre-wrap break-words">{event.title}</div>;
                   }
                   return (
-                    <div>
-                      <div className="font-medium">{event.title}</div>
+                    <div className="overflow-hidden">
+                      <div className="font-medium whitespace-pre-wrap break-words">{event.title}</div>
                       {event.location && (
-                        <div className="text-xs opacity-75">{event.location}</div>
+                        <div className="text-xs opacity-75 whitespace-pre-wrap break-words">{event.location}</div>
                       )}
                       {event.description && (
-                        <div className="text-xs opacity-75">{event.description}</div>
+                        <div className="text-xs opacity-75 whitespace-pre-wrap break-words">{event.description}</div>
                       )}
                     </div>
                   );
