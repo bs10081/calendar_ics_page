@@ -1,0 +1,112 @@
+.rbc-calendar {
+  @apply font-sans;
+}
+
+.rbc-toolbar {
+  @apply mb-4 flex flex-wrap gap-2 items-center justify-between px-4;
+}
+
+.rbc-toolbar button {
+  @apply px-4 py-2 text-sm font-medium rounded-full
+         text-gray-600 hover:bg-gray-100 focus:outline-none 
+         transition-colors duration-200;
+}
+
+.rbc-toolbar button.rbc-active {
+  @apply bg-purple-100 text-purple-600;
+}
+
+.rbc-toolbar-label {
+  @apply text-xl font-semibold text-gray-900;
+}
+
+.rbc-header {
+  @apply py-2 font-medium text-gray-500 text-sm border-b border-gray-100;
+}
+
+.rbc-header + .rbc-header {
+  @apply border-l-0;
+}
+
+.rbc-event {
+  @apply bg-green-100 border-none rounded-lg shadow-sm transition-all duration-200;
+}
+
+.rbc-event.calendar-event {
+  @apply bg-green-100 text-green-800 px-3 py-1 rounded-lg text-sm;
+}
+
+.rbc-event:hover {
+  @apply transform scale-[1.02] shadow-md;
+}
+
+.rbc-today {
+  @apply bg-purple-50;
+}
+
+.rbc-off-range-bg {
+  @apply bg-gray-50;
+}
+
+.rbc-time-content {
+  @apply border-t border-gray-100;
+}
+
+.rbc-time-header-content {
+  @apply border-l-0;
+}
+
+.rbc-time-slot {
+  @apply text-sm text-gray-400;
+}
+
+.rbc-current-time-indicator {
+  @apply bg-purple-500;
+}
+
+.rbc-time-gutter .rbc-timeslot-group {
+  @apply border-gray-100;
+}
+
+.rbc-timeslot-group {
+  @apply border-gray-100;
+}
+
+@media (max-width: 768px) {
+  .rbc-toolbar {
+    @apply px-2 flex-col items-stretch;
+  }
+
+  .rbc-toolbar-label {
+    @apply text-center my-2 text-lg;
+  }
+
+  .rbc-btn-group {
+    @apply flex justify-center gap-2;
+  }
+
+  .rbc-header {
+    @apply text-xs py-1;
+  }
+
+  .rbc-event {
+    @apply text-xs px-1;
+  }
+
+  .rbc-event.calendar-event {
+    @apply px-2;
+  }
+}
+
+/* 自定義滾動條 */
+.rbc-time-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.rbc-time-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.rbc-time-content::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+} 
